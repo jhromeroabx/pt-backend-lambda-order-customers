@@ -11,6 +11,15 @@ provider:
   memorySize: 512             # ✅ suficiente para axios + JSON heavy
   logRetentionInDays: 14      # ✅ logs de 2 semanas
   deploymentMethod: direct    # ✅ más rápido para CI/CD
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: "*"
   httpApi:
     cors: true
   environment:
@@ -19,17 +28,6 @@ provider:
     ORDERS_API_BASE: ${env:ORDERS_API_BASE}
     SERVICE_TOKEN: ${env:SERVICE_TOKEN}
     JWT_TOKEN_FOR_APIS: ${env:JWT_TOKEN_FOR_APIS}
-
-# --- Permisos mínimos ---
-iam:
-  role:
-    statements:
-      - Effect: Allow
-        Action:
-          - logs:CreateLogGroup
-          - logs:CreateLogStream
-          - logs:PutLogEvents
-        Resource: "*"
 
 # plugins:
 #   - serverless-offline
