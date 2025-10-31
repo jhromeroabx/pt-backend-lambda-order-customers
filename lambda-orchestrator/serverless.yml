@@ -29,6 +29,14 @@ provider:
     SERVICE_TOKEN: ${env:SERVICE_TOKEN}
     JWT_TOKEN_FOR_APIS: ${env:JWT_TOKEN_FOR_APIS}
 
+functions:
+  orchestrator:
+    handler: handler.createAndConfirm
+    events:
+      - httpApi:
+          path: /orchestrator/create-and-confirm-order
+          method: post
+
 # plugins:
 #   - serverless-offline
 
