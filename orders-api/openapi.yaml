@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Orders API
-  version: 1.0.0
+  version: 1.0.1
   description: API de gestión de órdenes y productos
 servers:
   - url: http://localhost:3002

@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Customers API
-  version: 1.0.0
+  version: 1.0.1
   description: API de gestión de clientes para el sistema de pedidos B2B
 servers:
   - url: http://localhost:3001
