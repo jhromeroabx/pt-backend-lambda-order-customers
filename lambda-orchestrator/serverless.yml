@@ -1,10 +1,14 @@
 service: lambda-orchestrator
-frameworkVersion: '4'
+frameworkVersion: '3'
+useDotenv: true
 
 provider:
   name: aws
-  runtime: nodejs20.x
+  runtime: nodejs18.x
   region: us-east-1
+  timeout: 15
+  httpApi:
+    cors: true
   environment:
     CUSTOMERS_API_BASE: ${env:CUSTOMERS_API_BASE}
     ORDERS_API_BASE: ${env:ORDERS_API_BASE}
@@ -14,6 +18,12 @@ provider:
 plugins:
   - serverless-offline
 
+custom:
+  serverless-offline:
+    httpPort: 3003
+    lambdaPort: 4000
+    noPrependStageInUrl: true
+
 functions:
   orchestrator:
     handler: handler.createAndConfirm
@@ -21,4 +31,3 @@ functions:
       - httpApi:
           path: /orchestrator/create-and-confirm-order
           method: post
-          cors: true

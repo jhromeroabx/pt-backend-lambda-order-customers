@@ -67,6 +67,10 @@ async function createOrder(req, res) {
     return res.status(201).json(orderRows[0]);
   } catch (e) {
     if (conn) await conn.rollback();
+
+    // 🔥 Log completo del error real (tipo, mensaje, stack)
+    console.error('[createOrder ERROR]', e);
+
     const msg = e.response?.data || e.message;
     return res.status(400).json({ error: msg });
   } finally {
@@ -75,7 +79,7 @@ async function createOrder(req, res) {
 }
 
 async function getOrder(req, res) {
-  const id = parseInt(req.params.id, 10);
+  const id = Number.parseInt(req.params.id, 10);
   if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
   const [orders] = await pool.execute('SELECT * FROM orders WHERE id=?', [id]);
   if (!orders.length) return res.status(404).json({ error: 'Not found' });
@@ -84,23 +88,33 @@ async function getOrder(req, res) {
 }
 
 async function searchOrders(req, res) {
-  const { status, from, to, cursor = 0, limit = 20 } = req.query;
+  let { status, from, to, cursor, limit } = req.query;
+  cursor = Number(cursor) || 0;
+  limit = Number(limit) || 20;
+
   const where = [];
   const vals = [];
   if (status) { where.push('status=?'); vals.push(status); }
   if (from) { where.push('created_at>=?'); vals.push(from); }
   if (to) { where.push('created_at<=?'); vals.push(to); }
   const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
   const [rows] = await pool.execute(
     `SELECT * FROM orders ${whereSql} ORDER BY id DESC LIMIT ?, ?`,
-    vals.concat([Number(cursor), Number(limit)])
+    [...vals, cursor, limit]
   );
-  return res.json({ data: rows, nextCursor: rows.length === Number(limit) ? Number(cursor) + Number(limit) : null });
+
+  return res.json({
+    data: rows,
+    nextCursor: rows.length === limit ? cursor + limit : null
+  });
 }
 
+
 async function confirmOrder(req, res) {
-  const id = parseInt(req.params.id, 10);
+  const id = Number.parseInt(req.params.id, 10);
   if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
+
   const idemKey = req.header('X-Idempotency-Key');
   if (!idemKey) return res.status(400).json({ error: 'Missing X-Idempotency-Key' });
 
@@ -109,14 +123,21 @@ async function confirmOrder(req, res) {
     conn = await pool.getConnection();
     await conn.beginTransaction();
 
-    // Idempotency check
+    // ---- IDEMPOTENCY CHECK ----
     const [idemRows] = await conn.execute('SELECT * FROM idempotency_keys WHERE `key`=?', [idemKey]);
     if (idemRows.length) {
       const saved = idemRows[0];
-      // Return stored response if exists
       if (saved.response_body) {
+        // ✅ Safe parse del JSON guardado
+        let parsed;
+        try {
+          parsed = JSON.parse(saved.response_body);
+        } catch {
+          console.error('[confirmOrder] Invalid stored JSON:', saved.response_body);
+          parsed = { message: 'Invalid JSON stored in idempotency_keys' };
+        }
         await conn.commit();
-        return res.json(JSON.parse(saved.response_body));
+        return res.json(parsed);
       }
     } else {
       await conn.execute(
@@ -125,35 +146,48 @@ async function confirmOrder(req, res) {
       );
     }
 
+    // ---- VALIDACIÓN DE ORDEN ----
     const [orders] = await conn.execute('SELECT * FROM orders WHERE id=? FOR UPDATE', [id]);
     if (!orders.length) throw new Error('Order not found');
     const order = orders[0];
+
+    // Ya confirmada
     if (order.status === 'CONFIRMED') {
       const body = { id: order.id, status: order.status, total_cents: order.total_cents };
-      await conn.execute('UPDATE idempotency_keys SET status=?, response_body=? WHERE `key`=?',
-        ['COMPLETED', JSON.stringify(body), idemKey]);
+      await conn.execute(
+        'UPDATE idempotency_keys SET status=?, response_body=? WHERE `key`=?',
+        ['COMPLETED', JSON.stringify(body), idemKey]  // ✅ stringify seguro
+      );
       await conn.commit();
       return res.json(body);
     }
+
     if (order.status !== 'CREATED') throw new Error('Order not in CREATED');
 
+    // ---- CONFIRMAR ORDEN ----
     await conn.execute('UPDATE orders SET status=? WHERE id=?', ['CONFIRMED', id]);
+
     const resultBody = { id, status: 'CONFIRMED', total_cents: order.total_cents };
-    await conn.execute('UPDATE idempotency_keys SET status=?, response_body=? WHERE `key`=?',
-      ['COMPLETED', JSON.stringify(resultBody), idemKey]);
+
+    await conn.execute(
+      'UPDATE idempotency_keys SET status=?, response_body=? WHERE `key`=?',
+      ['COMPLETED', JSON.stringify(resultBody), idemKey]  // ✅ stringify seguro
+    );
 
     await conn.commit();
     return res.json(resultBody);
+
   } catch (e) {
     if (conn) await conn.rollback();
-    return res.status(400).json({ error: e.message });
+    console.error('[confirmOrder ERROR]', e);
+    return res.status(400).json({ error: e.message || 'Unknown error' });
   } finally {
     if (conn) conn.release();
   }
 }
 
 async function cancelOrder(req, res) {
-  const id = parseInt(req.params.id, 10);
+  const id = Number.parseInt(req.params.id, 10);
   if (Number.isNaN(id)) return res.status(400).json({ error: 'Invalid id' });
 
   let conn;

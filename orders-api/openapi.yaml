@@ -1,45 +1,87 @@
 openapi: 3.1.0
 info:
   title: Orders API
-  version: "1.0.0"
+  version: 1.0.0
+  description: API de gestión de órdenes y productos
 servers:
   - url: http://localhost:3002
 paths:
   /products:
-    post:
-      summary: Crea producto
-      security: [{ bearerAuth: [] }]
-      responses:
-        '201': { description: Creado }
     get:
       summary: Lista productos
-      security: [{ bearerAuth: [] }]
-  /products/{id}:
-    get:
-      summary: Detalle de producto
-      security: [{ bearerAuth: [] }]
-    patch:
-      summary: Actualiza precio/stock
-      security: [{ bearerAuth: [] }]
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Lista de productos }
+    post:
+      summary: Crea producto
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                price_cents: { type: integer }
+                stock: { type: integer }
+      responses:
+        '201': { description: Producto creado }
   /orders:
     post:
-      summary: Crea una orden (valida cliente y stock, descuenta stock, estado CREATED)
-      security: [{ bearerAuth: [] }]
-    get:
-      summary: Lista órdenes
-      security: [{ bearerAuth: [] }]
+      summary: Crea orden
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                customer_id: { type: integer }
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      product_id: { type: integer }
+                      qty: { type: integer }
+      responses:
+        '201': { description: Orden creada }
   /orders/{id}:
     get:
-      summary: Detalle de orden con items
-      security: [{ bearerAuth: [] }]
+      summary: Obtiene una orden por ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: Orden encontrada }
   /orders/{id}/confirm:
     post:
-      summary: Confirmar orden (idempotente con X-Idempotency-Key)
-      security: [{ bearerAuth: [] }]
+      summary: Confirma una orden
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: header
+          name: X-Idempotency-Key
+          required: true
+          schema: { type: string }
+      responses:
+        '200': { description: Orden confirmada }
   /orders/{id}/cancel:
     post:
-      summary: Cancelar orden (reglas simples)
-      security: [{ bearerAuth: [] }]
+      summary: Cancela una orden
+      security:
+        - bearerAuth: []
+      responses:
+        '200': { description: Orden cancelada }
 components:
   securitySchemes:
     bearerAuth:
