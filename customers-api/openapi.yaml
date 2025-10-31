@@ -52,11 +52,16 @@ paths:
           schema: { type: integer }
       responses:
         '200': { description: Cliente encontrado }
-  /internal/{id}:
+  /customers/internal/{id}:
     get:
       summary: Endpoint interno para validación desde Orders
       security:
         - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
       responses:
         '200': { description: Cliente válido }
 components:
