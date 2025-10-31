@@ -31,8 +31,8 @@ iam:
           - logs:PutLogEvents
         Resource: "*"
 
-plugins:
-  - serverless-offline
+# plugins:
+#   - serverless-offline
 
 custom:
   serverless-offline:
