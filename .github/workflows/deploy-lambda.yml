@@ -40,7 +40,22 @@ jobs:
           npm ci
           npm install -g serverless
 
-      - name: Deploy Lambda Orchestrator
+      - name: Deploy Lambda Orchestrator to AWS
         working-directory: ./lambda-orchestrator
         run: |
+          echo "🚀 Deploying Lambda Orchestrator..."
           serverless deploy --stage prod --region $AWS_REGION
+
+      - name: Verify Lambda Function Creation
+        run: |
+          echo "🔍 Checking that Lambda function was created..."
+          aws lambda list-functions --region $AWS_REGION \
+            --query 'Functions[?starts_with(FunctionName, `lambda-orchestrator`)].FunctionName' \
+            --output table
+
+      - name: Print API Gateway Endpoint (if exists)
+        run: |
+          echo "🌐 Checking if API Gateway endpoint exists..."
+          aws apigatewayv2 get-apis --region $AWS_REGION \
+            --query 'Items[?starts_with(Name, `lambda-orchestrator-prod`)].ApiEndpoint' \
+            --output text || echo "No API Gateway endpoint found yet"
