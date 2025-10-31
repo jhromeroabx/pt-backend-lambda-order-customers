@@ -228,3 +228,62 @@ npx serverless offline
 - Retry & backoff exponencial.
 - Logging estructurado JSON.
 - Simulación local de AWS Lambda.
+
+
+aws ecr create-repository --repository-name customers-api --region us-east-1
+aws ecr create-repository --repository-name orders-api --region us-east-1
+
+aws ecs create-cluster --cluster-name b2b-prueba-cluster --region us-east-1
+
+aws ecs list-services --cluster b2b-prueba-cluster   --region us-east-1
+
+# TASK DEFINITION
+aws ecs register-task-definition `
+  --family customers-api `
+  --requires-compatibilities FARGATE `
+  --cpu "256" `
+  --memory "512" `
+  --network-mode awsvpc `
+  --execution-role-arn arn:aws:iam::148761658682:role/ecsTaskExecutionRole `
+  --container-definitions file://json_aws/customer.json `
+  --region us-east-1
+
+  aws ecs register-task-definition `
+  --family orders-api `
+  --requires-compatibilities FARGATE `
+  --cpu "256" `
+  --memory "512" `
+  --network-mode awsvpc `
+  --execution-role-arn arn:aws:iam::148761658682:role/ecsTaskExecutionRole `
+  --container-definitions file://json_aws/order.json `
+  --region us-east-1
+
+# SERIVICIOS ECS
+
+aws ecs create-service `
+  --cluster b2b-prueba-cluster `
+  --service-name b2b-prueba-customers-svc `
+  --task-definition customers-api `
+  --desired-count 1 `
+  --launch-type FARGATE `
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-08e1593277c9ffb0a,subnet-0d3c8edaf51c6b6df,subnet-0fb5fb96464e619b0,subnet-02c95c4ee20bee404,subnet-033f497527f331e2d,subnet-037b53e419477707e],assignPublicIp=ENABLED}" `
+  --region us-east-1
+
+aws ecs create-service `
+  --cluster b2b-prueba-cluster `
+  --service-name b2b-prueba-orders-svc `
+  --task-definition orders-api `
+  --desired-count 1 `
+  --launch-type FARGATE `
+  --network-configuration "awsvpcConfiguration={subnets=[subnet-08e1593277c9ffb0a,subnet-0d3c8edaf51c6b6df,subnet-0fb5fb96464e619b0,subnet-02c95c4ee20bee404,subnet-033f497527f331e2d,subnet-037b53e419477707e],assignPublicIp=ENABLED}" `
+  --region us-east-1
+
+
+# VER TABLA DE SUBNETING
+aws ec2 describe-subnets `
+  --region us-east-1 `
+  --query 'Subnets[*].{SubnetId:SubnetId,Public:MapPublicIpOnLaunch,AZ:AvailabilityZone}' `
+  --output table
+
+# CONFIRMAR LOS SERVICIOS CREADOS
+aws ecs list-services --cluster b2b-prueba-cluster --region us-east-1

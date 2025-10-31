@@ -1,0 +1,17 @@
+[
+  {
+    "name": "customers-api",
+    "image": "148761658682.dkr.ecr.us-east-1.amazonaws.com/customers-api:latest",
+    "essential": true,
+    "portMappings": [
+      {
+        "containerPort": 3001,
+        "protocol": "tcp"
+      }
+    ],
+    "environment": [
+      { "name": "PORT", "value": "3001" },
+      { "name": "SERVICE_TOKEN", "value": "internal-service-token" }
+    ]
+  }
+]

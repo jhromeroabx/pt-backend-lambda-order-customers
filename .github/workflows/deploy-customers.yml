@@ -49,3 +49,15 @@ jobs:
             --service $ECS_SERVICE \
             --force-new-deployment \
             --region $AWS_REGION
+
+
+# AWS_REGION	us-east-1
+# AWS_ACCOUNT_ID	123456789012
+# AWS_ACCESS_KEY_ID	AKIAXXXXX
+# AWS_SECRET_ACCESS_KEY	wJalrXXXXX
+# ECR_REPOSITORY_CUSTOMER_API	customers-api
+# ECR_REPOSITORY_CUSTOMER_API	orders-api
+# ECS_CLUSTER	b2b-prueba-cluster
+# ECS_SERVICE_CUSTOMER_API	b2b-prueba-customers-svc
+# ECS_SERVICE_CUSTOMER_API	b2b-prueba-orders-svc
+
