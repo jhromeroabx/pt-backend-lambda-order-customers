@@ -4,16 +4,32 @@ useDotenv: true
 
 provider:
   name: aws
-  runtime: nodejs18.x
+  runtime: nodejs20.x         # ✅ actualizado
   region: us-east-1
+  stage: ${opt:stage, 'prod'}
   timeout: 15
+  memorySize: 512             # ✅ suficiente para axios + JSON heavy
+  logRetentionInDays: 14      # ✅ logs de 2 semanas
+  deploymentMethod: direct    # ✅ más rápido para CI/CD
   httpApi:
     cors: true
   environment:
+    NODE_ENV: ${opt:stage, 'prod'}
     CUSTOMERS_API_BASE: ${env:CUSTOMERS_API_BASE}
     ORDERS_API_BASE: ${env:ORDERS_API_BASE}
     SERVICE_TOKEN: ${env:SERVICE_TOKEN}
     JWT_TOKEN_FOR_APIS: ${env:JWT_TOKEN_FOR_APIS}
+
+# --- Permisos mínimos ---
+iam:
+  role:
+    statements:
+      - Effect: Allow
+        Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+        Resource: "*"
 
 plugins:
   - serverless-offline
@@ -23,11 +39,3 @@ custom:
     httpPort: 3003
     lambdaPort: 4000
     noPrependStageInUrl: true
-
-functions:
-  orchestrator:
-    handler: handler.createAndConfirm
-    events:
-      - httpApi:
-          path: /orchestrator/create-and-confirm-order
-          method: post
