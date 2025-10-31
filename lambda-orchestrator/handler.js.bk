@@ -1,0 +1,69 @@
+const axios = require('axios');
+require('dotenv').config();
+
+/**
+ * Lambda handler (Serverless Offline compatible)
+ * body: { customer_id, items[], idempotency_key, correlation_id? }
+ */
+module.exports.createAndConfirm = async (event) => {
+  try {
+    const payload = typeof event.body === 'string' ? JSON.parse(event.body) : event.body;
+    const { customer_id, items, idempotency_key, correlation_id } = payload || {};
+    if (!customer_id || !Array.isArray(items) || !items.length || !idempotency_key) {
+      return response(400, { error: 'Missing fields: customer_id, items[], idempotency_key' });
+    }
+
+    // 1) Validate customer
+    const custRes = await axios.get(`${process.env.CUSTOMERS_API_BASE}/internal/${customer_id}`, {
+      headers: { Authorization: `Bearer ${process.env.SERVICE_TOKEN}` }
+    });
+    const customer = custRes.data;
+
+    // 2) Create order
+    const orderCreate = await axios.post(`${process.env.ORDERS_API_BASE}/orders`, {
+      customer_id,
+      items
+    }, {
+      headers: { Authorization: `Bearer ${process.env.JWT_TOKEN_FOR_APIS}` }
+    });
+    const createdOrder = orderCreate.data;
+
+    // 3) Confirm order (idempotent)
+    const confirmRes = await axios.post(`${process.env.ORDERS_API_BASE}/orders/${createdOrder.id}/confirm`, {}, {
+      headers: {
+        'Authorization': `Bearer ${process.env.JWT_TOKEN_FOR_APIS}`,
+        'X-Idempotency-Key': idempotency_key
+      }
+    });
+    const confirmed = confirmRes.data;
+
+    // 4) Build consolidated response
+    return response(201, {
+      success: true,
+      correlationId: correlation_id || null,
+      data: {
+        customer,
+        order: await consolidateOrder(confirmed.id)
+      }
+    });
+  } catch (e) {
+    const status = e.response?.status || 400;
+    const data = e.response?.data || { error: e.message };
+    return response(status, data);
+  }
+};
+
+async function consolidateOrder(orderId) {
+  const res = await require('axios').get(`${process.env.ORDERS_API_BASE}/orders/${orderId}`, {
+    headers: { Authorization: `Bearer ${process.env.JWT_TOKEN_FOR_APIS}` }
+  });
+  return res.data;
+}
+
+function response(statusCode, body) {
+  return {
+    statusCode,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  };
+}

@@ -1,0 +1,48 @@
+openapi: 3.1.0
+info:
+  title: Orders API
+  version: "1.0.0"
+servers:
+  - url: http://localhost:3002
+paths:
+  /products:
+    post:
+      summary: Crea producto
+      security: [{ bearerAuth: [] }]
+      responses:
+        '201': { description: Creado }
+    get:
+      summary: Lista productos
+      security: [{ bearerAuth: [] }]
+  /products/{id}:
+    get:
+      summary: Detalle de producto
+      security: [{ bearerAuth: [] }]
+    patch:
+      summary: Actualiza precio/stock
+      security: [{ bearerAuth: [] }]
+  /orders:
+    post:
+      summary: Crea una orden (valida cliente y stock, descuenta stock, estado CREATED)
+      security: [{ bearerAuth: [] }]
+    get:
+      summary: Lista órdenes
+      security: [{ bearerAuth: [] }]
+  /orders/{id}:
+    get:
+      summary: Detalle de orden con items
+      security: [{ bearerAuth: [] }]
+  /orders/{id}/confirm:
+    post:
+      summary: Confirmar orden (idempotente con X-Idempotency-Key)
+      security: [{ bearerAuth: [] }]
+  /orders/{id}/cancel:
+    post:
+      summary: Cancelar orden (reglas simples)
+      security: [{ bearerAuth: [] }]
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
