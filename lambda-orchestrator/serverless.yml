@@ -22,6 +22,7 @@ provider:
           Resource: "*"
   httpApi:
     cors: true
+    payload: '2.0'
   environment:
     NODE_ENV: ${opt:stage, 'prod'}
     CUSTOMERS_API_BASE: ${env:CUSTOMERS_API_BASE}
