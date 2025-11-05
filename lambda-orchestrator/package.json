@@ -12,7 +12,7 @@
     "dotenv": "^16.6.1"
   },
   "devDependencies": {
-    "serverless": "^3.38.0",
+    "serverless": "^3.40.0",
     "serverless-offline": "^13.9.0"
   }
 }
